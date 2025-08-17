@@ -6,7 +6,9 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
 
@@ -119,7 +121,7 @@ class PoolTest {
   @Test
   fun `range pool should throw exception for invalid range`() {
     assertThrows(IllegalArgumentException::class.java) {
-      @Suppress("EmptyRange")
+      @Suppress("EmptyRange", "detekt:potential-bugs:InvalidRange")
       Pool.range(10..1) // End is less than start
     }
   }

@@ -1,0 +1,12 @@
+# Default detekt configuration:
+# https://github.com/detekt/detekt/blob/v1.23.8/detekt-core/src/main/resources/default-detekt-config.yml
+
+style:
+  AlsoCouldBeApply:
+    active: true
+  BracesOnIfStatements:
+    singleLine: never
+    multiLine: always
+  BracesOnWhenStatements:
+    singleLine: never
+    multiLine: always

@@ -1,330 +1,201 @@
 package com.objekt
 
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.util.UUID
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
 
 class ObjektRandomTest {
 
-  @Test
-  fun `string should generate random strings with specified length constraints and character pool`() {
-    val minLength = 5
-    val maxLength = 10
-    val charPool = listOf('a', 'b', 'c', 'd', 'e')
+  @RepeatedTest(10)
+  fun `string should generate random string with default configuration`() {
+    // Use the companion object
+    val result = ObjektRandom.string()
 
-    // Generate 10 random strings
-    val strings = (1..10).map { ObjektRandom.string(minLength, maxLength, charPool) }
+    // Verify the string is not empty and has expected length
+    assertNotNull(result)
+    assertTrue(result.length in 1..10, "Default string length should be between 1 and 10")
 
-    // Verify that all strings have lengths within the specified constraints
-    strings.forEach { string ->
-      assertTrue(string.length in minLength..maxLength)
-      // Verify that all characters in the string are from the specified character pool
-      string.forEach { char -> assertTrue(char in charPool) }
+    // Verify the string contains only expected characters
+    val allowedChars = ('a'..'z').toSet() + ('A'..'Z').toSet() + ('0'..'9').toSet()
+    result.forEach { char ->
+      assertTrue(
+          char in allowedChars,
+          "Generated string should only contain characters from default char pool")
+    }
+  }
+
+  @RepeatedTest(10)
+  fun `string should use custom length pool`() {
+    // Create a custom length pool
+    val fixedLength = 15
+    val result = ObjektRandom.string(length = { exactly = fixedLength })
+
+    // Verify the string has the expected length
+    assertEquals(
+        fixedLength, result.length, "Generated string should have length from custom length pool")
+  }
+
+  @RepeatedTest(10)
+  fun `string should use custom char pool`() {
+    // Create a custom char pool
+    val allowedChars = setOf('x', 'y', 'z')
+    val result = ObjektRandom.string(chars = { oneOf = allowedChars })
+
+    // Verify the string contains only characters from the custom pool
+    result.forEach { char ->
+      assertTrue(
+          char in allowedChars,
+          "Generated string should only contain characters from custom char pool")
     }
   }
 
   @Test
-  fun `string with String charPool should generate random strings with specified length constraints and character pool`() {
-    val minLength = 5
-    val maxLength = 10
-    val charPool = "abcde"
+  fun `ObjektRandom constructor should accept configuration builder`() {
+    // Create a custom ObjektRandom with configuration
+    val objektRandom = ObjektRandom {
+      stringLength { exactly = 20 }
+      char { oneOf = setOf('a', 'b', 'c') }
+    }
 
-    // Generate 10 random strings
-    val strings = (1..10).map { ObjektRandom.string(minLength, maxLength, charPool) }
+    // Generate a string using the custom configuration
+    val result = objektRandom.string()
 
-    // Verify that all strings have lengths within the specified constraints
-    strings.forEach { string ->
-      assertTrue(string.length in minLength..maxLength)
-      // Verify that all characters in the string are from the specified character pool
-      string.forEach { char -> assertTrue(char in charPool) }
+    // Verify the string has the expected length
+    assertEquals(20, result.length, "Generated string should have length from custom configuration")
+
+    // Verify the string contains only characters from the custom pool
+    result.forEach { char ->
+      assertTrue(
+          char in setOf('a', 'b', 'c'),
+          "Generated string should only contain characters from custom configuration")
     }
   }
 
   @Test
-  fun `alphabeticString should generate random strings with only alphabetic characters`() {
-    val minLength = 3
-    val maxLength = 8
+  fun `PoolBuilder should create unique pool when exactly is set`() {
+    val builder = PoolBuilder<Int>().apply { exactly = 5 }
+    val pool = builder.pool()
 
-    // Generate 10 random alphabetic strings
-    val strings = (1..10).map { ObjektRandom.alphabeticString(minLength, maxLength) }
-
-    // Verify that all strings have lengths within the specified constraints
-    strings.forEach { string ->
-      assertTrue(string.length in minLength..maxLength)
-      // Verify that all characters in the string are alphabetic
-      string.forEach { char -> assertTrue(char in ('a'..'z') || char in ('A'..'Z')) }
+    assertNotNull(pool)
+    repeat(10) {
+      assertEquals(5, pool!!.random(), "Unique pool should always return the same value")
     }
   }
 
   @Test
-  fun `alphanumericString should generate random strings with alphanumeric characters`() {
-    val minLength = 3
-    val maxLength = 8
+  fun `PoolBuilder should create range pool when between is set`() {
+    val range = 1..10
+    val builder = PoolBuilder<Int>().apply { between = range }
+    val pool = builder.pool()
 
-    // Generate 10 random alphanumeric strings
-    val strings = (1..10).map { ObjektRandom.alphanumericString(minLength, maxLength) }
-
-    // Verify that all strings have lengths within the specified constraints
-    strings.forEach { string ->
-      assertTrue(string.length in minLength..maxLength)
-      // Verify that all characters in the string are alphanumeric
-      string.forEach { char ->
-        assertTrue(char in ('a'..'z') || char in ('A'..'Z') || char in ('0'..'9'))
-      }
+    assertNotNull(pool)
+    repeat(10) {
+      val result = pool!!.random()
+      assertTrue(result in range, "Range pool should return a value within the specified range")
     }
   }
 
   @Test
-  fun `numericString should generate random strings with only numeric characters`() {
-    val minLength = 3
-    val maxLength = 8
+  fun `PoolBuilder should create oneOf pool when oneOf is set`() {
+    val values = listOf("a", "b", "c")
+    val builder = PoolBuilder<String>().apply { oneOf = values }
+    val pool = builder.pool()
 
-    // Generate 10 random numeric strings
-    val strings = (1..10).map { ObjektRandom.numericString(minLength, maxLength) }
-
-    // Verify that all strings have lengths within the specified constraints
-    strings.forEach { string ->
-      assertTrue(string.length in minLength..maxLength)
-      // Verify that all characters in the string are numeric
-      string.forEach { char -> assertTrue(char in ('0'..'9')) }
+    assertNotNull(pool)
+    repeat(10) {
+      val result = pool!!.random()
+      assertTrue(result in values, "OneOf pool should return one of the specified values")
     }
   }
 
   @Test
-  fun `uuid should generate valid UUID strings`() {
-    // Generate 10 random UUIDs
-    val uuids = (1..10).map { ObjektRandom.uuid() }
+  fun `PoolBuilder should create oneOfMultiple pool when iterables is set`() {
+    val iterables = listOf(listOf("a", "b"), listOf("c", "d"))
+    val builder = PoolBuilder<String>().apply { this.iterables = iterables }
+    val pool = builder.pool()
 
-    // Verify that all UUIDs are unique
-    assertEquals(uuids.size, uuids.toSet().size)
-
-    // Verify that all UUIDs are valid
-    uuids.forEach { uuidString -> assertDoesNotThrow { UUID.fromString(uuidString) } }
-  }
-
-  @Test
-  fun `int should generate random integers within the specified range`() {
-    val min = 10
-    val max = 20
-
-    // Generate 100 random integers
-    val integers = (1..100).map { ObjektRandom.int(min, max) }
-
-    // Verify that all integers are within the specified range
-    integers.forEach { integer -> assertTrue(integer in min..max) }
-
-    // Verify that we get a good distribution of values
-    assertTrue(integers.distinct().size > 1)
-  }
-
-  @Test
-  fun `long should generate random longs within the specified range`() {
-    val min = 10L
-    val max = 20L
-
-    // Generate 100 random longs
-    val longs = (1..100).map { ObjektRandom.long(min, max) }
-
-    // Verify that all longs are within the specified range
-    longs.forEach { long -> assertTrue(long in min..max) }
-
-    // Verify that we get a good distribution of values
-    assertTrue(longs.distinct().size > 1)
-  }
-
-  @Test
-  fun `double should generate random doubles within the specified range and precision`() {
-    val min = 0.0
-    val max = 1.0
-    val precision = 2
-
-    // Generate 100 random doubles
-    val doubles = (1..100).map { ObjektRandom.double(min, max, precision) }
-
-    // Verify that all doubles are within the specified range
-    doubles.forEach { double -> assertTrue(double >= min && double <= max) }
-
-    // Verify that all doubles have the specified precision
-    doubles.forEach { double ->
-      val decimalPlaces = double.toString().split(".").getOrNull(1)?.length ?: 0
-      assertTrue(decimalPlaces <= precision)
+    assertNotNull(pool)
+    repeat(10) {
+      val result = pool!!.random()
+      assertTrue(
+          result in listOf("a", "b", "c", "d"),
+          "OneOfMultiple pool should return one of the values from any of the iterables")
     }
   }
 
   @Test
-  fun `boolean should generate random booleans with the specified probability`() {
-    // Generate 1000 random booleans with 100% probability of true
-    val allTrue = (1..1000).map { ObjektRandom.boolean(1.0) }
-    assertTrue(allTrue.all { it })
+  fun `PoolBuilder should throw exception when multiple properties are set`() {
+    // Test exactly + between
+    val builder1 =
+        PoolBuilder<Int>().apply {
+          exactly = 5
+          between = 1..10
+        }
+    assertThrows(IllegalArgumentException::class.java) { builder1.pool() }
 
-    // Generate 1000 random booleans with 0% probability of true
-    val allFalse = (1..1000).map { ObjektRandom.boolean(0.0) }
-    assertTrue(allFalse.none { it })
+    // Test exactly + oneOf
+    val builder2 =
+        PoolBuilder<String>().apply {
+          exactly = "a"
+          oneOf = listOf("a", "b", "c")
+        }
+    assertThrows(IllegalArgumentException::class.java) { builder2.pool() }
 
-    // Generate 1000 random booleans with 50% probability of true
-    val halfTrue = (1..1000).map { ObjektRandom.boolean(0.5) }
-    val trueCount = halfTrue.count { it }
-    // Allow for some statistical variation
-    assertTrue(trueCount in 400..600)
+    // Test between + iterables
+    val builder3 =
+        PoolBuilder<Int>().apply {
+          between = 1..10
+          iterables = listOf(listOf(1, 2), listOf(3, 4))
+        }
+    assertThrows(IllegalArgumentException::class.java) { builder3.pool() }
   }
 
   @Test
-  fun `localDate should generate random dates within the specified range`() {
-    val minDate = LocalDate.of(2020, 1, 1)
-    val maxDate = LocalDate.of(2020, 12, 31)
+  fun `ObjektRandomConfigBuilder should build config with defaults when nothing is specified`() {
+    val builder = ObjektRandomConfigBuilder()
+    val config = builder.build()
 
-    // Generate 100 random dates
-    val dates = (1..100).map { ObjektRandom.localDate(minDate, maxDate) }
+    // Verify the default values
+    assertNotNull(config.stringLength)
+    assertNotNull(config.chars)
 
-    // Verify that all dates are within the specified range
-    dates.forEach { date -> assertTrue(date >= minDate && date <= maxDate) }
-
-    // Verify that we get a good distribution of values
-    assertTrue(dates.distinct().size > 1)
-  }
-
-  @Test
-  fun `localTime should generate random times within the specified range`() {
-    val minHour = 9
-    val maxHour = 17
-
-    // Generate 100 random times
-    val times = (1..100).map { ObjektRandom.localTime(minHour, maxHour) }
-
-    // Verify that all times have hours within the specified range
-    times.forEach { time -> assertTrue(time.hour in minHour..maxHour) }
-
-    // Verify that we get a good distribution of values
-    assertTrue(times.distinct().size > 1)
-  }
-
-  @Test
-  fun `localDateTime should generate random date-times within the specified range`() {
-    val minDateTime = LocalDateTime.of(2020, 1, 1, 0, 0)
-    val maxDateTime = LocalDateTime.of(2020, 12, 31, 23, 59)
-
-    // Generate 100 random date-times
-    val dateTimes = (1..100).map { ObjektRandom.localDateTime(minDateTime, maxDateTime) }
-
-    // Verify that all date-times are within the specified range
-    dateTimes.forEach { dateTime -> assertTrue(dateTime >= minDateTime && dateTime <= maxDateTime) }
-
-    // Verify that we get a good distribution of values
-    assertTrue(dateTimes.distinct().size > 1)
-  }
-
-  @Test
-  fun `zonedDateTime should generate random zoned date-times within the specified range`() {
-    val zone = ZoneId.systemDefault()
-    val minDateTime = ZonedDateTime.of(LocalDateTime.of(2020, 1, 1, 0, 0), zone)
-    val maxDateTime = ZonedDateTime.of(LocalDateTime.of(2020, 12, 31, 23, 59), zone)
-
-    // Generate 100 random zoned date-times
-    val dateTimes = (1..100).map { ObjektRandom.zonedDateTime(minDateTime, maxDateTime, zone) }
-
-    // Verify that all zoned date-times are within the specified range
-    dateTimes.forEach { dateTime ->
-      assertTrue(dateTime >= minDateTime && dateTime <= maxDateTime)
-      assertEquals(zone, dateTime.zone)
+    // Test the default string length pool
+    val lengths = (1..10).map { config.stringLength.random() }
+    lengths.forEach { length ->
+      assertTrue(length in 1..10, "Default string length should be between 1 and 10")
     }
 
-    // Verify that we get a good distribution of values
-    assertTrue(dateTimes.distinct().size > 1)
-  }
-
-  @Test
-  fun `list should generate random lists with the specified size constraints`() {
-    val minSize = 3
-    val maxSize = 8
-    val generator = { ObjektRandom.int(1, 100) }
-
-    // Generate 10 random lists
-    val lists = (1..10).map { ObjektRandom.list(minSize, maxSize, generator) }
-
-    // Verify that all lists have sizes within the specified constraints
-    lists.forEach { list -> assertTrue(list.size in minSize..maxSize) }
-
-    // Verify that the lists contain the expected type of elements
-    lists.forEach { list ->
-      list.forEach { element ->
-        assertTrue(element is Int)
-        assertTrue(element in 1..100)
-      }
+    // Test the default char pool
+    val allowedChars = ('a'..'z').toSet() + ('A'..'Z').toSet() + ('0'..'9').toSet()
+    val chars = (1..10).map { config.chars.random() }
+    chars.forEach { char ->
+      assertTrue(char in allowedChars, "Default char pool should include letters and digits")
     }
   }
 
   @Test
-  fun `set should generate random sets with the specified size constraints`() {
-    val minSize = 3
-    val maxSize = 8
-    val generator = { ObjektRandom.int(1, 100) }
+  fun `ObjektRandomConfigBuilder should build config with custom values`() {
+    val builder = ObjektRandomConfigBuilder()
 
-    // Generate 10 random sets
-    val sets = (1..10).map { ObjektRandom.set(minSize, maxSize, generator) }
+    // Configure custom values
+    builder.stringLength { exactly = 15 }
+    builder.char { oneOf = setOf('x', 'y', 'z') }
 
-    // Verify that all sets have sizes within the specified constraints
-    sets.forEach { set -> assertTrue(set.size in minSize..maxSize) }
+    val config = builder.build()
 
-    // Verify that the sets contain the expected type of elements
-    sets.forEach { set ->
-      set.forEach { element ->
-        assertTrue(element is Int)
-        assertTrue(element in 1..100)
-      }
+    // Test the custom string length pool
+    repeat(10) {
+      assertEquals(15, config.stringLength.random(), "Custom string length should be exactly 15")
     }
-  }
 
-  @Test
-  fun `map should generate random maps with the specified size constraints`() {
-    val minSize = 3
-    val maxSize = 8
-    val keyGenerator = { ObjektRandom.string(5, 10) }
-    val valueGenerator = { ObjektRandom.int(1, 100) }
-
-    // Generate 10 random maps
-    val maps = (1..10).map { ObjektRandom.map(minSize, maxSize, keyGenerator, valueGenerator) }
-
-    // Verify that all maps have sizes within the specified constraints
-    maps.forEach { map -> assertTrue(map.size in minSize..maxSize) }
-
-    // Verify that the maps contain the expected types of keys and values
-    maps.forEach { map ->
-      map.forEach { (key, value) ->
-        assertTrue(key is String)
-        assertTrue(key.length in 5..10)
-        assertTrue(value is Int)
-        assertTrue(value in 1..100)
-      }
+    // Test the custom char pool
+    val allowedChars = setOf('x', 'y', 'z')
+    repeat(10) {
+      val char = config.chars.random()
+      assertTrue(char in allowedChars, "Custom char pool should only include specified characters")
     }
-  }
-
-  @Test
-  fun `oneOf should pick a random element from the given collection`() {
-    val collection = listOf("a", "b", "c", "d", "e")
-
-    // Pick 100 random elements
-    val elements = (1..100).map { ObjektRandom.oneOf(collection) }
-
-    // Verify that all elements are from the collection
-    elements.forEach { element -> assertTrue(element in collection) }
-
-    // Verify that we get a good distribution of values
-    assertTrue(elements.distinct().size > 1)
-  }
-
-  @Test
-  fun `oneOf with varargs should pick a random element from the given array`() {
-    // Pick 100 random elements
-    val elements = (1..100).map { ObjektRandom.oneOf("a", "b", "c", "d", "e") }
-
-    // Verify that all elements are from the array
-    elements.forEach { element -> assertTrue(element in listOf("a", "b", "c", "d", "e")) }
-
-    // Verify that we get a good distribution of values
-    assertTrue(elements.distinct().size > 1)
   }
 }

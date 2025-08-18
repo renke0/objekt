@@ -1,17 +1,20 @@
 package com.objekt
 
+import com.objekt.RandomPlus.nextChar
 import com.objekt.RandomPlus.nextDouble
 import com.objekt.RandomPlus.nextFloat
 import com.objekt.RandomPlus.nextInstant
 import com.objekt.RandomPlus.nextLocalDate
 import com.objekt.RandomPlus.nextLocalDateTime
 import com.objekt.RandomPlus.nextLocalTime
+import com.objekt.RandomPlus.nextLong
 import com.objekt.RandomPlus.nextZonedDateTime
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZonedDateTime
+import kotlin.random.Random.Default.nextInt
 import kotlin.reflect.KClass
 
 interface Pool<T : Comparable<T>> {
@@ -61,6 +64,13 @@ internal class Range<T : Comparable<T>>(private val range: ClosedRange<T>) : Poo
     val kClass = commonParent(range.start::class, range.endInclusive::class)
     @Suppress("UNCHECKED_CAST")
     return when (kClass) {
+      Char::class -> nextChar(range.start as Char, range.endInclusive as Char) as T
+      Int::class -> nextInt(range.start as Int, range.endInclusive as Int + 1) as T
+      Long::class -> nextLong(range.start as Long, range.endInclusive as Long + 1) as T
+      UInt::class ->
+          nextInt((range.start as UInt).toInt(), (range.endInclusive as UInt).toInt() + 1) as T
+      ULong::class ->
+          nextLong((range.start as ULong).toLong(), (range.endInclusive as ULong).toLong() + 1) as T
       Double::class -> nextDouble(range.start as Double, range.endInclusive as Double) as T
       Float::class -> nextFloat(range.start as Float, range.endInclusive as Float) as T
       LocalTime::class ->

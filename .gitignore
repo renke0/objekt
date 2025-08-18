@@ -1,6 +1,7 @@
 .dev/
 .gradle/
 .idea/
+.kotlin/
 build/
 *.iml
 baseline.xml

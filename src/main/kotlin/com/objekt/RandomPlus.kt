@@ -23,6 +23,19 @@ object RandomPlus : Random() {
   // Long
   fun nextLong(range: LongRange): Long = nextLong(range.first, range.last + 1)
 
+  // Char
+  fun nextChar(): Char = nextChar(Char.MIN_VALUE..Char.MAX_VALUE)
+
+  fun nextChar(until: Char): Char = nextChar(Char.MIN_VALUE..until)
+
+  fun nextChar(from: Char, until: Char): Char = nextChar(from..until)
+
+  fun nextChar(range: ClosedRange<Char>): Char {
+    val start = range.start.code
+    val end = range.endInclusive.code
+    return (nextInt(start, end + 1)).toChar()
+  }
+
   // Float
   fun nextFloat(until: Float): Float = nextFloat() * until
 

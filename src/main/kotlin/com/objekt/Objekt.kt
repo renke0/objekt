@@ -1,7 +1,6 @@
 package com.objekt
 
 import java.util.Random
-import java.util.UUID
 import org.jeasy.random.EasyRandom
 import org.jeasy.random.EasyRandomParameters
 import org.jeasy.random.randomizers.range.IntegerRangeRandomizer
@@ -42,14 +41,4 @@ inline fun <reified T : Any> objekt(
 
     instance
   }
-}
-
-/** Utility function to generate a random UUID string */
-fun randomUuid(): String = UUID.randomUUID().toString()
-
-/** Utility function to generate a random string with specified length constraints */
-fun randomString(minLength: Int = 5, maxLength: Int = 10): String {
-  val length = (minLength..maxLength).random()
-  val allowedChars = ('A'..'Z') + ('a'..'z') + ('0'..'9')
-  return (1..length).map { allowedChars.random() }.joinToString("")
 }
